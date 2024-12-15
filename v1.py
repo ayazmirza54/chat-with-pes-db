@@ -81,65 +81,6 @@ class JSONColumnProcessor:
         except (json.JSONDecodeError, TypeError):
             return value
 
-class FileManager:
-    @staticmethod
-    def ensure_upload_dir():
-        """
-        Ensure the upload directory exists
-        """
-        upload_dir = os.path.join(os.getcwd(), 'uploaded_files')
-        os.makedirs(upload_dir, exist_ok=True)
-        return upload_dir
-    
-    @staticmethod
-    def save_uploaded_file(uploaded_file):
-        """
-        Save an uploaded file to a persistent location
-        
-        :param uploaded_file: Streamlit uploaded file
-        :return: Path to the saved file
-        """
-        upload_dir = FileManager.ensure_upload_dir()
-        file_path = os.path.join(upload_dir, uploaded_file.name)
-        
-        # Save the file
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-        
-        return file_path
-    
-    @staticmethod
-    def read_csv_with_robust_parsing(file_path):
-        """
-        Read CSV with more robust parsing
-        
-        :param file_path: Path to the CSV file
-        :return: Processed DataFrame
-        """
-        try:
-            # Try reading with default settings
-            df = pd.read_csv(file_path, engine='python')
-            return df
-        except Exception as e:
-            st.sidebar.warning(f"Default CSV parsing failed: {e}")
-            
-            # Try alternative parsing methods
-            try:
-                # Try reading with explicit separator detection
-                df = pd.read_csv(file_path, engine='python', sep=None)
-                return df
-            except Exception as alt_e:
-                st.sidebar.error(f"Advanced CSV parsing failed: {alt_e}")
-                
-                # Read as plain text to debug
-                with open(file_path, 'r') as f:
-                    sample_lines = f.readlines()[:5]
-                    st.sidebar.text("Sample file contents:")
-                    for line in sample_lines:
-                        st.sidebar.text(line.strip())
-                
-                raise ValueError(f"Unable to parse CSV file: {file_path}")
-
 class GeminiSQLChatInterface:
     def __init__(self, api_key, model_name="gemini-2.0-flash-exp"):
         # Configure API 
@@ -194,8 +135,8 @@ class GeminiSQLChatInterface:
             # Process CSV files
             if mime_type == "text/csv":
                 try:
-                    # Read CSV with robust parsing
-                    df = FileManager.read_csv_with_robust_parsing(path)
+                    # Read CSV
+                    df = pd.read_csv(path)
                     
                     # Process JSON columns
                     processed_df = JSONColumnProcessor.process_json_column(df)
@@ -333,15 +274,12 @@ def main():
         key="file_uploader"
     )
     
-    # Initialize session state for chat history, Gemini interface, and uploaded file paths
+    # Initialize session state for chat history and Gemini interface
     if 'chat_history' not in st.session_state:
         st.session_state.chat_history = []
     
     if 'gemini_interface' not in st.session_state:
         st.session_state.gemini_interface = None
-    
-    if 'uploaded_file_paths' not in st.session_state:
-        st.session_state.uploaded_file_paths = []
     
     # Check if API key is provided
     if not api_key:
@@ -356,15 +294,14 @@ def main():
         
         # Upload and process files if provided
         if uploaded_files:
-            # Save uploaded files to a persistent location
+            # Save uploaded files temporarily
             temp_files = []
             for uploaded_file in uploaded_files:
-                # Save file and get persistent path
-                file_path = FileManager.save_uploaded_file(uploaded_file)
-                temp_files.append(file_path)
-            
-            # Store file paths in session state for persistence
-            st.session_state.uploaded_file_paths.extend(temp_files)
+                temp_path = os.path.join("temp", uploaded_file.name)
+                os.makedirs("temp", exist_ok=True)
+                with open(temp_path, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+                temp_files.append(temp_path)
             
             # Upload files to Gemini
             st.session_state.gemini_interface.upload_files(temp_files)
@@ -410,22 +347,23 @@ def main():
             # Clear chat history and Gemini interface
             st.session_state.chat_history = []
             st.session_state.gemini_interface = None
-            
-            # Keep uploaded files, just reset the interface
             st.experimental_rerun()
         
-        # Display uploaded files
-        st.sidebar.header("Uploaded Files")
-        for file_path in st.session_state.uploaded_file_paths:
-            st.sidebar.text(os.path.basename(file_path))
-    
     except Exception as e:
         st.error(f"An error occurred: {e}")
     
     finally:
-        # Clean up Gemini files if interface exists
+        # Clean up temporary files and Gemini files if interface exists
         if st.session_state.gemini_interface:
             st.session_state.gemini_interface.clear_files()
+        
+        # Remove temporary CSV files
+        if 'temp_files' in locals():
+            for temp_file in temp_files:
+                try:
+                    os.remove(temp_file)
+                except Exception:
+                    pass
 
 if __name__ == "__main__":
     main()
