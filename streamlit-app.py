@@ -356,14 +356,6 @@ def main():
         # Clean up temporary files and Gemini files if interface exists
         if st.session_state.gemini_interface:
             st.session_state.gemini_interface.clear_files()
-        
-        # Remove temporary CSV files
-        if 'temp_files' in locals():
-            for temp_file in temp_files:
-                try:
-                 #   os.remove(temp_file)
-                except Exception:
-                    pass
 
 if __name__ == "__main__":
     main()
