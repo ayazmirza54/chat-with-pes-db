@@ -23,7 +23,7 @@ class GeminiSQLChatInterface:
             model_name=model_name,
             generation_config=self.generation_config,
             system_instruction=(
-                "You are an expert SQL developer. The user will upload files with tabular data, and your role is to write precise SQL queries "
+                "You are an expert SQL developer. The user will upload files with tabular data, and your role is to write precise SQL queries and provide explanation also"
                 "based on the full data in those files. You may receive files with thousands of rows and many columns."
                 "If any general sql question is asked provide a detailed answer for a postgres specific environment"
             ),
@@ -101,13 +101,13 @@ class GeminiSQLChatInterface:
 def main():
     # Set page configuration
     st.set_page_config(
-        page_title="Gemini SQL Query Assistant",
+        page_title="Querysmith : Gemini Powered SQL Query Assistant",
         page_icon=":robot_face:",
         layout="wide",
     )
 
     # Title
-    st.title("🤖 Gemini SQL Query Assistant")
+    st.title("🤖🤝🧑‍💻 Querysmith 🛠️ : Gemini Powered SQL Query Assistant")
     st.markdown("Develop SQL queries with AI assistance using full file data!")
 
     # Sidebar for configuration
