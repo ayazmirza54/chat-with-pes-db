@@ -25,6 +25,7 @@ class GeminiSQLChatInterface:
             system_instruction=(
                 "You are an expert SQL developer. The user will upload files with tabular data, and your role is to write precise SQL queries "
                 "based on the full data in those files. You may receive files with thousands of rows and many columns."
+                "If any general sql question is asked provide a detailed answer for a postgres specific environment"
             ),
         )
 
@@ -184,7 +185,7 @@ def main():
     if st.sidebar.button("Start New Conversation"):
         st.session_state.chat_history = []
         st.session_state.gemini_interface = None
-        st.experimental_rerun()
+        st.rerun()
 
 
 if __name__ == "__main__":
